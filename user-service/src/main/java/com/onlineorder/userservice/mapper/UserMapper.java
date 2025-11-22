@@ -4,17 +4,14 @@ import com.onlineorder.userservice.dto.CreateUserRequest;
 import com.onlineorder.userservice.dto.UpdateUserRequest;
 import com.onlineorder.userservice.dto.UserResponse;
 import com.onlineorder.userservice.model.User;
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring",nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
+    @Mapping(target = "password",ignore = true)
     User toEntity(CreateUserRequest request);
 
     UserResponse toResponse(User user);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateFromRequest(UpdateUserRequest request, @MappingTarget User target);
+    void updateUserFromDto(UpdateUserRequest request, @MappingTarget User user);
 }

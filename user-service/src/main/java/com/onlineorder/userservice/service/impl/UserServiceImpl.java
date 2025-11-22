@@ -15,7 +15,9 @@ import com.onlineorder.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -26,13 +28,17 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final MessagePublisher messagePublisher;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public UserResponse create(CreateUserRequest request) {
         if(userRepository.existsByEmail(request.email())){
             throw new ConflictException("Email already in use: "+request.email());
         }
-        User saved=userRepository.save(userMapper.toEntity(request));
+        User user=userMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(request.password()));
+        User saved=userRepository.save(user);
 
         UserEvent event=new UserEvent();
         event.setUserId(saved.getId());
@@ -62,10 +68,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse update(Long id, UpdateUserRequest request) {
         User user=userRepository.findById(id).orElseThrow(()-> new NotFoundException("User not found: "+id));
-        if(request.email()!=null && !request.email().equals(user.getEmail()) && userRepository.existsByEmail(request.email())){
-            throw new ConflictException("Email already in use: "+request.email());
-        }
-        userMapper.updateFromRequest(request,user);
+
+        userMapper.updateUserFromDto(request,user);
         return userMapper.toResponse(userRepository.save(user));
     }
 

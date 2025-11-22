@@ -19,10 +19,10 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserService userService;
 
-    @PostMapping
-    public ResponseEntity<UserResponse> create(@RequestBody @Valid CreateUserRequest request) {
-        return ResponseEntity.ok(userService.create(request));
-    }
+//    @PostMapping
+//    public ResponseEntity<UserResponse> create(@RequestBody @Valid CreateUserRequest request) {
+//        return ResponseEntity.ok(userService.create(request));
+//    }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> get(@PathVariable Long id) {
