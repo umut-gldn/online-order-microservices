@@ -10,6 +10,9 @@ import com.onlineorder.restaurantservice.model.Restaurant;
 import com.onlineorder.restaurantservice.repository.RestaurantRepository;
 import com.onlineorder.restaurantservice.service.RestaurantService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
+    @Cacheable(value = "restaurants",key = "#id")
     public RestaurantResponse getById(Long id) {
         Restaurant restaurant=repository.findById(id).orElseThrow(()-> new NotFoundException("Restaurant not found: "+id));
         return mapper.toResponse(restaurant);
@@ -39,6 +43,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
+    @CachePut(value = "restaurants",key = "#id")
     public RestaurantResponse update(Long id, UpdateRestaurantRequest request) {
         Restaurant restaurant=repository.findById(id).orElseThrow(()->new NotFoundException("Restaurant not found: "+id));
         mapper.updateFromRequest(request,restaurant);
@@ -46,6 +51,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
+    @CacheEvict(value = "restaurants",key = "#id")
     public void delete(Long id) {
         if(!repository.existsById(id)){
             throw new NotFoundException("Restaurant not found: "+id);

@@ -11,5 +11,6 @@ public record CreateMenuItemRequest(
         @NotBlank @Size(min = 2, max = 160) String name,
         @Size(max = 500) String description,
         @NotNull @DecimalMin("0.0") BigDecimal price,
-        Boolean available
+        Boolean available,
+        String imageUrl
 ) {}

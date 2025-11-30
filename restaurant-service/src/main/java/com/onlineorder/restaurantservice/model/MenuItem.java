@@ -34,6 +34,9 @@ public class MenuItem {
     @Column(nullable = false)
     private Boolean available = true;
 
+    @Column(length = 500)
+    private String imageUrl;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
