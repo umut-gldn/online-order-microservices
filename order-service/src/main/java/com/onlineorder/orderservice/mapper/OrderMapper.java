@@ -1,5 +1,6 @@
 package com.onlineorder.orderservice.mapper;
 
+import com.onlineorder.common.events.OrderEvent;
 import com.onlineorder.orderservice.dto.OrderRequest;
 import com.onlineorder.orderservice.dto.OrderResponse;
 import com.onlineorder.orderservice.model.Order;
@@ -25,4 +26,9 @@ public interface OrderMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateFromRequest(OrderRequest request, @MappingTarget Order target);
+
+    @Mapping(source = "id", target ="orderId")
+    @Mapping(source = "totalPrice", target ="totalAmount")
+    @Mapping(source = "orderItems", target ="items")
+    OrderEvent toEvent(Order order);
 }
