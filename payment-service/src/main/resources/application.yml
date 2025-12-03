@@ -1,6 +1,11 @@
 spring:
   application:
     name: payment-service
+payment:
+  provider: mock
+stripe:
+  api-key: ${STRIPE_API_KEY}
+  currency: usd
 
   config:
     import: "configserver:"
