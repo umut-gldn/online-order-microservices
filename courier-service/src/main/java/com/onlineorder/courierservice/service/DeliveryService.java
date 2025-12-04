@@ -8,7 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface DeliveryService {
-    DeliveryResponse assign(CreateDeliveryRequest request);
+    public void assignCourierToOrder(Long orderId);
     DeliveryResponse getById(Long id);
     Page<DeliveryResponse> list(Pageable pageable);
     Page<DeliveryResponse> listByCourier(Long courierId, Pageable pageable);

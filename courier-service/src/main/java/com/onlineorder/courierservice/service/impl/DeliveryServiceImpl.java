@@ -1,6 +1,5 @@
 package com.onlineorder.courierservice.service.impl;
 
-import com.onlineorder.courierservice.dto.CreateDeliveryRequest;
 import com.onlineorder.courierservice.dto.DeliveryResponse;
 import com.onlineorder.courierservice.dto.UpdateDeliveryRequest;
 import com.onlineorder.courierservice.exception.NotFoundException;
@@ -12,41 +11,54 @@ import com.onlineorder.courierservice.repository.CourierRepository;
 import com.onlineorder.courierservice.repository.DeliveryRepository;
 import com.onlineorder.courierservice.service.DeliveryService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeliveryServiceImpl implements DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
     private final DeliveryMapper mapper;
     private final CourierRepository courierRepository;
 
-    private Courier getCourier(Long id){
-        return courierRepository.findById(id).orElseThrow(()->new NotFoundException("Courier not found: "+id));
+    private Delivery getDeliveryOrThrow(Long id){
+        return deliveryRepository.findById(id).orElseThrow(()->new NotFoundException("Delivery not found with id: "+id));
+    }
+    private Courier getCourierOrThrow(Long id){
+        return courierRepository.findById(id).orElseThrow(()->new NotFoundException("Courier not found with id: "+id));
     }
 
     @Override
-    public DeliveryResponse assign(CreateDeliveryRequest request) {
-        Courier courier=getCourier(request.courierId());
+    @Transactional
+    public void assignCourierToOrder(Long orderId) {
+        List<Courier> availableCouriers=courierRepository.findAllByActiveTrue();
+        if(availableCouriers.isEmpty()){
+            log.error("No active couriers found for this {} ",orderId);
+            return;
+        }
+        Courier selectedCourier=availableCouriers.get(new Random().nextInt(availableCouriers.size()));
+
         Delivery delivery=Delivery.builder()
-                .orderId(request.orderId())
-                .courier(courier)
-                .status(request.status())
-                .pickupAddress(request.pickupAddress())
-                .dropoffAddress(request.dropoffAddress())
-                .estimatedMinutes(request.estimatedMinutes())
+                .orderId(orderId)
+                .courier(selectedCourier)
+                .status(DeliveryStatus.ASSIGNED)
                 .build();
-        return mapper.toResponse(deliveryRepository.save(delivery));
+
+        deliveryRepository.save(delivery);
+        log.info("Courier {} assigned to order {}",selectedCourier.getId(),orderId);
     }
 
     @Override
     public DeliveryResponse getById(Long id) {
-        Delivery delivery=deliveryRepository.findById(id).orElseThrow(()->new NotFoundException("Delivery not found with id: "+id));
-        Long courierId=delivery.getCourier() != null ? delivery.getCourier().getId() : null;
-       return new DeliveryResponse(delivery.getId(),delivery.getOrderId(),courierId,delivery.getStatus(),delivery.getPickupAddress(),delivery.getDropoffAddress(),delivery.getEstimatedMinutes());
+        return mapper.toResponse(getDeliveryOrThrow(id));
     }
 
     @Override
@@ -56,7 +68,7 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     @Override
     public Page<DeliveryResponse> listByCourier(Long courierId, Pageable pageable) {
-        Courier courier=getCourier(courierId);
+        Courier courier= getCourierOrThrow(courierId);
         return deliveryRepository.findAllByCourier(courier,pageable).map(mapper::toResponse);
     }
 
@@ -67,25 +79,18 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     @Override
     public DeliveryResponse update(Long id, UpdateDeliveryRequest request) {
-        Delivery delivery=deliveryRepository.findById(id).orElseThrow(()->new NotFoundException("Delivery not found with id: "+id));
+        Delivery delivery=getDeliveryOrThrow(id);
         if(request.courierId()!=null && !request.courierId().equals(delivery.getCourier().getId())){
-            delivery.setCourier(getCourier(request.courierId()));
+            Courier courier=getCourierOrThrow(request.courierId());
+            delivery.setCourier(courier);
         }
         mapper.updateFromRequest(request,delivery);
-        return toResponse(deliveryRepository.save(delivery));
+        return mapper.toResponse(deliveryRepository.save(delivery));
     }
 
     @Override
     public void delete(Long id) {
-        if(!deliveryRepository.existsById(id)){
-            throw new NotFoundException("Delivery not found with id: "+id);
-        }
+       Delivery delivery=getDeliveryOrThrow(id);
         deliveryRepository.deleteById(id);
-    }
-
-    private DeliveryResponse toResponse(Delivery delivery){
-        Long courierId=delivery.getCourier() != null ? delivery.getCourier().getId() : null;
-        return  new DeliveryResponse(delivery.getId(),delivery.getOrderId(),courierId,delivery.getStatus(),delivery.getPickupAddress(),delivery.getDropoffAddress(),delivery.getEstimatedMinutes());
-
     }
 }

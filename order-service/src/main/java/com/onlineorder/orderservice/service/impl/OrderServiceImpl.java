@@ -39,7 +39,6 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository repository;
     private final OrderMapper mapper;
-
     private final UserClient userClient;
     private final RestaurantIntegrationService restaurantIntegrationService;
     private final OrderEventManager eventManager;
@@ -63,9 +62,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderResponse getOrderById(Long id) {
-        return repository.findById(id)
-                .map(mapper::toResponse)
-                .orElseThrow(()->new RuntimeException("Order not found with id: "+id));
+        return mapper.toResponse(getOrderOrThrow(id));
     }
 
     @Override
@@ -82,7 +79,7 @@ public class OrderServiceImpl implements OrderService {
 
         userClient.getById(request.userId());
 
-        Order order=repository.findById(id).orElseThrow(()->new RuntimeException("Order not found with id: "+id));
+        Order order=getOrderOrThrow(id);
         OrderStatus previousStatus=order.getStatus();
 
         mapper.updateFromRequest(request,order);
@@ -101,14 +98,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void deleteOrder(Long id) {
-       Order order=repository.findById(id).orElseThrow(()->new RuntimeException("Order not found with id: "+id));
+       Order order=getOrderOrThrow(id);
        repository.deleteById(id);
        eventManager.publishOrderCancelled(order,"Order deleted by user");
     }
 
     @Transactional
     public  OrderResponse updateOrderStatus(Long orderId,OrderStatus status){
-        Order order=repository.findById(orderId).orElseThrow(()->new RuntimeException("Order not found with id: "+orderId));
+        Order order=getOrderOrThrow(orderId);
 
         if(order.getStatus()==status){
             return mapper.toResponse(order);
@@ -125,7 +122,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void cancelOrder(Long orderId,String reason){
-        Order order=repository.findById(orderId).orElseThrow(()->new RuntimeException("Order not found with id: "+orderId));
+        Order order=getOrderOrThrow(orderId);
 
         if(order.getStatus()==OrderStatus.CANCELLED) return;
 
@@ -155,8 +152,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     public OrderResponse fallbackUserCheck(Throwable t){
+        log.error("User service is unavailable. {}",t.getMessage());
         throw new RuntimeException("User service is unavailable.");
     }
 
+    private Order getOrderOrThrow(Long id){
+        return repository.findById(id).orElseThrow(()->new RuntimeException("Order not found with id: "+id));
+    }
 
 }

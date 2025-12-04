@@ -20,16 +20,19 @@ public class CourierServiceImpl implements CourierService {
     private final CourierRepository repository;
     private final CourierMapper mapper;
 
+    private Courier getCourierOrThrow(Long id){
+        return repository.findById(id).orElseThrow(()->new NotFoundException("Courier not found with id: "+id));
+    }
 
     @Override
     public CourierResponse create(CreateCourierRequest request) {
-        return mapper.toResponse(repository.save(mapper.toEntity(request)));
+        Courier courier=mapper.toEntity(request);
+        return mapper.toResponse(repository.save(courier));
     }
 
     @Override
     public CourierResponse getById(Long id) {
-        Courier courier=repository.findById(id).orElseThrow(()->new NotFoundException("Courier not found with id: "+id));
-        return mapper.toResponse(courier);
+        return mapper.toResponse(getCourierOrThrow(id));
     }
 
     @Override
@@ -39,16 +42,14 @@ public class CourierServiceImpl implements CourierService {
 
     @Override
     public CourierResponse update(Long id, UpdateCourierRequest request) {
-        Courier courier=repository.findById(id).orElseThrow(()->new NotFoundException("Courier not found with id: "+id));
+        Courier courier=getCourierOrThrow(id);
         mapper.updateFromRequest(request,courier);
         return mapper.toResponse(repository.save(courier));
     }
 
     @Override
     public void delete(Long id) {
-        if(!repository.existsById(id)){
-            throw new NotFoundException("Courier not found with id: "+id);
-        }
+        Courier courier=getCourierOrThrow(id);
         repository.deleteById(id);
     }
 
